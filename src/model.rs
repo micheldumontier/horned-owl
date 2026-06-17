@@ -93,6 +93,7 @@ use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -269,7 +270,8 @@ impl<A: ForIRI> IRI<A> {
 /// without consequences except for increased memory use.
 #[derive(Debug, Default)]
 pub struct Build<A: ForIRI>(
-    RefCell<BTreeSet<IRI<A>>>,
+    // Use HashSet for O(1) average-case IRI interning lookups (was BTreeSet).
+    RefCell<HashSet<IRI<A>>>,
     RefCell<BTreeSet<AnonymousIndividual<A>>>,
     // Last anon individual
     RefCell<i64>,
@@ -277,8 +279,10 @@ pub struct Build<A: ForIRI>(
 
 impl<A: ForIRI> Build<A> {
     pub fn new() -> Build<A> {
+        // Pre-size the IRI cache to avoid frequent rehashing for typical
+        // ontologies (hundreds to hundreds of thousands of distinct IRIs).
         Build(
-            RefCell::new(BTreeSet::new()),
+            RefCell::new(HashSet::with_capacity(1024)),
             RefCell::new(BTreeSet::new()),
             RefCell::new(0),
         )
