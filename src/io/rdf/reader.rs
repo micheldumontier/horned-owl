@@ -797,17 +797,20 @@ impl<'a, A: ForIRI, AA: ForIndex<A>, O: RDFOntology<A, AA>> OntologyParser<'a, A
             [_, Iri(p), ob @ Term::Literal(_)] => Ok(Annotation {
                 ap: AnnotationProperty(p.clone()),
                 av: self.convert_to_literal(ob).unwrap().into(),
+                ann: Default::default(),
             }),
             [_, Iri(p), Iri(ob)] => {
                 // IRI annotation value
                 Ok(Annotation {
                     ap: AnnotationProperty(p.clone()),
                     av: ob.clone().into(),
+                    ann: Default::default(),
                 })
             }
             [_, Iri(p), Term::BNode(_)] => Ok(Annotation {
                 ap: AnnotationProperty(p.clone()),
                 av: self.b.anon_renumbered().into(),
+                ann: Default::default(),
             }),
             all => Err(HornedError::invalid(format!(
                 "Invalid annotation found {:?}",

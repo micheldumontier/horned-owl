@@ -1700,6 +1700,21 @@ impl<A: ForIRI> Literal<A> {
 pub struct Annotation<A> {
     pub ap: AnnotationProperty<A>,
     pub av: AnnotationValue<A>,
+    /// Annotations on this annotation itself (OWL 2 annotated annotations,
+    /// e.g. functional `Annotation( Annotation( :m "why" ) rdfs:comment "x" )`).
+    /// Mirrors [`AnnotatedComponent::ann`]; empty in the common, unnested case.
+    pub ann: BTreeSet<Annotation<A>>,
+}
+
+impl<A: ForIRI> Annotation<A> {
+    /// Construct an annotation with no nested annotations.
+    pub fn new(ap: AnnotationProperty<A>, av: AnnotationValue<A>) -> Self {
+        Annotation {
+            ap,
+            av,
+            ann: BTreeSet::new(),
+        }
+    }
 }
 
 /// The value of an annotation
@@ -2329,10 +2344,10 @@ mod test {
     fn test_axiom_equality() {
         let b = Build::new_rc();
 
-        let ann = Annotation {
-            ap: b.annotation_property("http://www.example.com/ap"),
-            av: b.iri("http://www.example.com/av").into(),
-        };
+        let ann = Annotation::new(
+            b.annotation_property("http://www.example.com/ap"),
+            b.iri("http://www.example.com/av").into(),
+        );
 
         let mut decl1: AnnotatedComponent<_> =
             DeclareClass(b.class("http://www.example.com#a")).into();

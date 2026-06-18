@@ -941,7 +941,12 @@ impl<A: ForIRI> FromPair<A> for Annotation<A> {
         }
         let ap = AnnotationProperty(IRI::from_pair(next, ctx)?);
         let av = AnnotationValue::from_pair(inner.next().unwrap(), ctx)?;
-        Ok(Annotation { ap, av })
+        // OMN nested-annotation support is a separate step; still parse-and-drop here.
+        Ok(Annotation {
+            ap,
+            av,
+            ann: Default::default(),
+        })
     }
 }
 
@@ -2972,6 +2977,7 @@ mod tests {
                 av: AnnotationValue::Literal(Literal::Simple {
                     literal: val.to_string(),
                 }),
+                ann: Default::default(),
             });
             s
         };
@@ -3053,6 +3059,7 @@ mod tests {
             av: AnnotationValue::Literal(Literal::Simple {
                 literal: "an ontology".to_string(),
             }),
+            ann: Default::default(),
         }));
         o.insert(DeclareClass(b.class("http://ex/A")));
         o.insert(AnnotationAssertion {
@@ -3062,6 +3069,7 @@ mod tests {
                 av: AnnotationValue::Literal(Literal::Simple {
                     literal: "the A class".to_string(),
                 }),
+                ann: Default::default(),
             },
         });
         // an IRI-valued entity annotation too
@@ -3070,6 +3078,7 @@ mod tests {
             ann: Annotation {
                 ap: b.annotation_property("http://ex/seeAlso"),
                 av: AnnotationValue::IRI(b.iri("http://ex/B")),
+                ann: Default::default(),
             },
         });
 
@@ -3270,6 +3279,7 @@ mod tests {
             av: AnnotationValue::Literal(Literal::Simple {
                 literal: "capstone ontology".to_string(),
             }),
+            ann: Default::default(),
         }));
 
         // declarations
@@ -3289,6 +3299,7 @@ mod tests {
                 av: AnnotationValue::Literal(Literal::Simple {
                     literal: "Class A".to_string(),
                 }),
+                ann: Default::default(),
             },
         });
 
@@ -3316,6 +3327,7 @@ mod tests {
             av: AnnotationValue::Literal(Literal::Simple {
                 literal: "inferred".to_string(),
             }),
+            ann: Default::default(),
         });
         o.insert(AnnotatedComponent {
             component: Component::SubClassOf(SubClassOf {
@@ -3725,6 +3737,7 @@ mod tests {
             av: AnnotationValue::Literal(Literal::Simple {
                 literal: "x".to_string(),
             }),
+            ann: Default::default(),
         });
         let annotated = AnnotatedComponent {
             component: Component::SubClassOf(SubClassOf {
@@ -3771,6 +3784,7 @@ mod tests {
             av: AnnotationValue::Literal(Literal::Simple {
                 literal: "x".to_string(),
             }),
+            ann: Default::default(),
         });
         let annotated_b = AnnotatedComponent {
             component: Component::SubClassOf(SubClassOf {
@@ -3839,6 +3853,7 @@ mod tests {
                 av: AnnotationValue::Literal(Literal::Simple {
                     literal: val.to_string(),
                 }),
+                ann: Default::default(),
             });
             s
         };
@@ -3940,6 +3955,7 @@ mod tests {
             av: AnnotationValue::Literal(Literal::Simple {
                 literal: "x".into(),
             }),
+            ann: Default::default(),
         });
         o.insert(AnnotatedComponent {
             component: Component::SubClassOf(SubClassOf {

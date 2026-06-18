@@ -449,6 +449,7 @@ fn axiom_from_start<A: ForIRI, R: BufRead>(
         b"Annotation" => OntologyAnnotation(Annotation {
             ap: from_start(r, e)?,
             av: from_next(r)?,
+            ann: Default::default(),
         })
         .into(),
         b"Declaration" => {
@@ -571,7 +572,7 @@ fn axiom_from_start<A: ForIRI, R: BufRead>(
 
             AnnotationAssertion {
                 subject,
-                ann: Annotation { ap, av },
+                ann: Annotation::new(ap, av),
             }
             .into()
         }
@@ -1148,7 +1149,8 @@ from_xml! {
                     }
                     return Ok(Annotation{
                         ap:ap.unwrap(),
-                        av:av.unwrap()
+                        av:av.unwrap(),
+                        ann: Default::default(),
                     });
                 },
                 (_, Event::Eof) => {

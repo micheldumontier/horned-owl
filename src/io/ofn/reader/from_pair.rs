@@ -386,7 +386,7 @@ impl<A: ForIRI> FromPair<A> for AnnotatedComponent<A> {
                 let subject = AnnotationSubject::from_pair(inner.next().unwrap(), ctx)?;
                 let av = AnnotationValue::from_pair(inner.next().unwrap(), ctx)?;
                 Ok(Self::new(
-                    AnnotationAssertion::new(subject, Annotation { ap, av }),
+                    AnnotationAssertion::new(subject, Annotation::new(ap, av)),
                     annotations,
                 ))
             }
@@ -452,12 +452,13 @@ impl<A: ForIRI> FromPair<A> for Annotation<A> {
     const RULE: Rule = Rule::Annotation;
     fn from_pair_unchecked(pair: Pair<Rule>, ctx: &Context<'_, A>) -> Result<Self> {
         let mut inner = pair.into_inner();
-        let _annotations: BTreeSet<Annotation<A>> =
-            FromPair::from_pair(inner.next().unwrap(), ctx)?;
+        // An annotation may itself be annotated (OWL 2 annotated annotations).
+        let ann: BTreeSet<Annotation<A>> = FromPair::from_pair(inner.next().unwrap(), ctx)?;
 
         Ok(Annotation {
             ap: FromPair::from_pair(inner.next().unwrap(), ctx)?,
             av: FromPair::from_pair(inner.next().unwrap(), ctx)?,
+            ann,
         })
     }
 }
@@ -1161,6 +1162,46 @@ mod tests {
                 )],
             ))
         );
+    }
+
+    // Regression test for issue #175: an annotation on an annotation (OWL 2
+    // annotated annotations) used to be parsed and silently dropped. It is now
+    // stored in `Annotation::ann` and survives a parse/render round-trip.
+    #[test]
+    fn annotation_with_nested_annotation() {
+        use crate::io::ofn::writer::AsFunctional;
+
+        let build: Build<String> = Build::default();
+        let mut prefixes = PrefixMapping::default();
+        prefixes
+            .add_prefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#")
+            .unwrap();
+        prefixes.add_prefix("", "http://www.example.com/").unwrap();
+
+        let doc = r#"Annotation( Annotation( :m "why" ) rdfs:comment "hello" )"#;
+        let ctx = Context::new(&build, &prefixes);
+        let mut pairs = OwlFunctionalLexer::lex(Rule::Annotation, doc).unwrap();
+        let ann: Annotation<String> = FromPair::from_pair(pairs.next().unwrap(), &ctx).unwrap();
+
+        // Outer annotation preserved.
+        assert_eq!(
+            ann.ap,
+            build.annotation_property("http://www.w3.org/2000/01/rdf-schema#comment")
+        );
+        // Nested annotation preserved (was previously dropped).
+        assert_eq!(ann.ann.len(), 1);
+        let nested = ann.ann.iter().next().unwrap();
+        assert_eq!(
+            nested.ap,
+            build.annotation_property("http://www.example.com/m")
+        );
+        assert!(nested.ann.is_empty());
+
+        // Render back to functional syntax and re-parse: lossless round-trip.
+        let rendered = ann.as_functional_with_prefixes(&prefixes).to_string();
+        let mut pairs2 = OwlFunctionalLexer::lex(Rule::Annotation, &rendered).unwrap();
+        let ann2: Annotation<String> = FromPair::from_pair(pairs2.next().unwrap(), &ctx).unwrap();
+        assert_eq!(ann, ann2);
     }
 
     #[test]

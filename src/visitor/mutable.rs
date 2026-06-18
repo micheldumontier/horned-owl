@@ -585,6 +585,17 @@ impl<A: ForIRI, V: VisitMut<A>> WalkMut<A, V> {
         self.0.visit_annotation(e);
         self.annotation_property(&mut e.ap);
         self.annotation_value(&mut e.av);
+
+        // Recurse into nested annotations (OWL 2 annotated annotations). Each is
+        // visited directly via `annotation` rather than through `annotation_vec`,
+        // so the `visit_annotation_vec` hook keeps its axiom-level-only contract
+        // (visiting nested sets through it would let a vec-growing visitor recurse
+        // without bound).
+        let mut nested: Vec<Annotation<A>> = std::mem::take(&mut e.ann).into_iter().collect();
+        for a in nested.iter_mut() {
+            self.annotation(a);
+        }
+        e.ann = nested.into_iter().collect();
     }
 
     pub fn annotation_value(&mut self, e: &mut AnnotationValue<A>) {
@@ -873,6 +884,7 @@ mod test {
                     literal: "hello".to_string(),
                 }
                 .into(),
+                ann: Default::default(),
             })
         }
     }
