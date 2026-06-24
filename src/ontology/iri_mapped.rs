@@ -72,7 +72,7 @@ impl<A: ForIRI, AA: ForIndex<A>> IRIMappedIndex<A, AA> {
         let mut w = Walk::new(IRIExtract::default());
         w.annotated_component(cmp);
 
-        w.into_visit().into_vec().into_iter().collect()
+        w.into_visit().into_set()
     }
 
     /// Fetch the axioms for the given iri.
@@ -220,6 +220,7 @@ impl<A: ForIRI, AA: ForIndex<A>> OntologyIndex<A, AA> for IRIMappedIndex<A, AA> 
             })
     }
 
+    #[allow(clippy::unnecessary_fold)]
     fn index_remove(&mut self, cmp: &AnnotatedComponent<A>) -> bool {
         Self::iris_from_component(cmp)
             .iter()
@@ -297,7 +298,7 @@ impl<A: ForIRI, AA: ForIndex<A>> IRIMappedOntology<A, AA> {
         self.insert(new_cmp)
     }
 
-    pub fn iter(&self) -> std::vec::IntoIter<&AnnotatedComponent<A>> {
+    pub fn iter(&self) -> impl Iterator<Item = &AnnotatedComponent<A>> {
         self.0.i().into_iter()
     }
 }

@@ -386,7 +386,14 @@ impl<A: ForIRI> FromPair<A> for AnnotatedComponent<A> {
                 let subject = AnnotationSubject::from_pair(inner.next().unwrap(), ctx)?;
                 let av = AnnotationValue::from_pair(inner.next().unwrap(), ctx)?;
                 Ok(Self::new(
-                    AnnotationAssertion::new(subject, Annotation { ap, av }),
+                    AnnotationAssertion::new(
+                        subject,
+                        Annotation {
+                            ap,
+                            av,
+                            ann: Default::default(),
+                        },
+                    ),
                     annotations,
                 ))
             }
@@ -452,12 +459,12 @@ impl<A: ForIRI> FromPair<A> for Annotation<A> {
     const RULE: Rule = Rule::Annotation;
     fn from_pair_unchecked(pair: Pair<Rule>, ctx: &Context<'_, A>) -> Result<Self> {
         let mut inner = pair.into_inner();
-        let _annotations: BTreeSet<Annotation<A>> =
-            FromPair::from_pair(inner.next().unwrap(), ctx)?;
+        let ann: BTreeSet<Annotation<A>> = FromPair::from_pair(inner.next().unwrap(), ctx)?;
 
         Ok(Annotation {
             ap: FromPair::from_pair(inner.next().unwrap(), ctx)?,
             av: FromPair::from_pair(inner.next().unwrap(), ctx)?,
+            ann,
         })
     }
 }
@@ -794,7 +801,7 @@ impl<A: ForIRI> FromPair<A> for Facet {
         let iri = IRI::from_pair(pair, ctx)?;
         Facet::all()
             .into_iter()
-            .find(|facet| iri.to_string() == facet.as_ref())
+            .find(|facet| iri.as_ref() == facet.as_ref())
             .ok_or_else(|| HornedError::invalid_at("invalid facet", span))
     }
 }
